@@ -3,11 +3,11 @@
 ## Installation
 
 ```
-pnpm install
+npm install
 ```
 
 ## Local development
 
 ```
-pnpm run dev
+npm run dev
 ```
