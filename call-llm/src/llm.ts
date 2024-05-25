@@ -1,5 +1,5 @@
 import EventEmitter from 'events';
-import OpenAI from 'openai';
+
 import { Soul, said } from "@opensouls/soul";
 
 export class Llm extends EventEmitter {
@@ -8,16 +8,21 @@ export class Llm extends EventEmitter {
   private userContext: any[];
 
   constructor() {
+    console.log("soul")
     super();
     this.soul = new Soul({
       organization: "capsaicinkidliamjohnston",
       blueprint: "customer-service-broker",
     });
+    this.soul.connect().then(async () => {
+      console.log("connected");
+    });
     this.userContext = [];
     //callback for completion
     this.soul.on("says", async ({ content }) => {
-      this.emit('llmreply', await content());
+      this.emit('llmreply', 1, await content());
     });
+    
   }
 
   // Add the callSid to the chat context in case
@@ -36,7 +41,8 @@ export class Llm extends EventEmitter {
 
   async completion(text: string, role = 'user', name = 'user') {
     this.updateUserContext(name, role, text);
-    await this.soul.dispatch(said("User", text)); 
+    console.log("Test")
+    this.soul.dispatch(said("User", text)); 
     this.userContext.push({ role: 'assistant', content: this.userContext + text});
     console.log(`LLM -> user context length: ${this.userContext.length}`.green);
   }

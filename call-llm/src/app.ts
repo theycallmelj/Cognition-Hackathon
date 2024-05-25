@@ -5,12 +5,15 @@ import VoiceResponse from 'twilio/lib/twiml/VoiceResponse';
 import { Llm } from './llm';
 import { Stream } from './stream';
 import { TextToSpeech } from './text-to-speech';
-import { ElevenLabsAlpha } from 'elevenlabs-alpha';
+import {OpenAI } from 'openai';
+import fs from 'fs';
+import path from 'path';
 
 const app = ExpressWs(express()).app;
 const PORT: number = parseInt(process.env.PORT || '5000');
 
-const elevenlabs = new ElevenLabsAlpha();
+
+const openai = new OpenAI();
 
 export const startApp = () => {
   app.post('/call/incoming', (_, res: Response) => {
@@ -27,7 +30,8 @@ export const startApp = () => {
   app.ws('/call/connection', (ws: WebSocket) => {
     console.log('Twilio -> Connection opened'.underline.green);
 
-    ws.on('error', console.error);
+    ws.on('error', (error) => console.error('WebSocket error:', error));
+    ws.on('close', () => console.log('WebSocket connection closed'));
 
     const llm = new Llm();
     const stream = new Stream(ws);
@@ -36,27 +40,29 @@ export const startApp = () => {
     let streamSid: string;
     let callSid: string;
     let marks: string[] = [];
+    const audioChunks: Buffer[] = [];
 
-    elevenlabs.speechToText.connect({
-      onTranscription: (data: string) => {
-        console.log(`Transcription – STT -> LLM: ${data}`.yellow);
-        llm.completion(data);
-      },
-      onUtterance: (data: string) => {
-        if (marks.length > 0 && data?.length > 5) {
-          console.log('Interruption, Clearing stream'.red);
+    // Path to save the audio file
+    const audioFilePath = path.join(__dirname, 'audio.wav');
 
-          ws.send(
-            JSON.stringify({
-              streamSid,
-              event: 'clear',
-            }),
-          );
-        }
-      },
-    });
+    // Function to process the audio file with OpenAI STT
+    const processAudio = async (filePath: string) => {
+      try {
+        
+        const audioBuffer = Buffer.from(
+          fs.readFileSync(filePath));
+        const transcription = await openai.audio.transcriptions.create({
+          file: new File([new Blob([audioBuffer])], "input.wav", { type: "audio/wav" }),
+          model: 'whisper-1', // Use the appropriate model name
+          response_format: 'text',
+        });
+        console.log(`Transcription – STT -> LLM: ${transcription.text}`.yellow);
+        llm.completion(transcription.text);
+      } catch (error) {
+        console.error('Error in OpenAI transcription:', error);
+      }
+    };
 
-    // Incoming from MediaStream
     ws.on('message', (data: string) => {
       const message: {
         event: string;
@@ -79,12 +85,9 @@ export const startApp = () => {
           partialResponse: 'Hi, my name is Eleven. How can I help you?',
         });
       } else if (message.event === 'media' && message.media) {
-        if (elevenlabs.speechToText.isOpen) {
-          elevenlabs.speechToText.send({
-            event: 'audio',
-            data: message.media.payload,
-          });
-        }
+        const audioData = Buffer.from(message.media.payload, 'base64');
+        audioChunks.push(audioData);
+        fs.appendFileSync(audioFilePath, audioData);
       } else if (message.event === 'mark' && message.mark) {
         const label: string = message.mark.name;
 
@@ -92,10 +95,10 @@ export const startApp = () => {
           `Twilio -> Audio completed mark (${message.sequenceNumber}): ${label}`
             .red,
         );
-
         marks = marks.filter((m: string) => m !== message.mark?.name);
       } else if (message.event === 'stop') {
         console.log(`Twilio -> Media stream ${streamSid} ended.`.underline.red);
+        processAudio(audioFilePath);
       }
     });
 
@@ -108,7 +111,6 @@ export const startApp = () => {
       'speech',
       (responseIndex: number, audio: string, label: string) => {
         console.log(`TTS -> TWILIO: ${label}`.blue);
-
         stream.buffer(responseIndex, audio);
       },
     );
