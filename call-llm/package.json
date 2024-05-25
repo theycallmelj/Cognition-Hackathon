@@ -11,6 +11,7 @@
     "ngrok": "ngrok http 5000"
   },
   "dependencies": {
+    "@opensouls/soul": "^0.1.32",
     "axios": "^1.6.8",
     "colors": "^1.4.0",
     "elevenlabs-alpha": "^0.0.5",
