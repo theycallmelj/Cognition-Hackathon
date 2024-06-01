@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer';
 import axios from 'axios';
 
 export class TextToSpeech extends EventEmitter {
-  voiceId = '21m00Tcm4TlvDq8ikWAM';
+  voiceId = process.env['VOICE_ID'];
   outputFormat = 'ulaw_8000';
   nextExpectedIndex = 0;
   speechBuffer: Record<number, string> = {};

@@ -44,9 +44,10 @@ export const startApp = () => {
       try {
         console.log(JSON.stringify(utterance, null, 2))
         if(utterance.type === "final") {
-          console.log(`Transcription – STT -> LLM: ${utterance.transcription}`.yellow);
-          llm.completion(utterance.transcription)
+        console.log(`Transcription – STT -> LLM: ${utterance.transcription}`.yellow);
+        llm.completion(utterance.transcription)
         }
+        
       } catch (error) {
         console.error('Error in transcription:', error);
       }
@@ -96,7 +97,7 @@ export const startApp = () => {
         );
         textToSpeech.generate({
           partialResponseIndex: null,
-          partialResponse: 'Hi, Liam. How can I help you?',
+          partialResponse: 'Hi, I am LiamGPT. How can I help you?',
         });
       } else if (message.event === 'media' && message.media) {
         wsTranscription.send(JSON.stringify({ frames: message.media.payload }))
