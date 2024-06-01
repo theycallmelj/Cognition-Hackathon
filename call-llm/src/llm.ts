@@ -20,7 +20,9 @@ export class Llm extends EventEmitter {
     this.userContext = [];
     //callback for completion
     this.soul.on("says", async ({ content }) => {
-      this.emit('llmreply', 1, await content());
+      const text = await content();
+      console.log("soul says", text);
+      this.emit('llmreply',{partialResponse: text});
     });
     
   }
@@ -41,7 +43,6 @@ export class Llm extends EventEmitter {
 
   async completion(text: string, role = 'user', name = 'user') {
     this.updateUserContext(name, role, text);
-    console.log("Test")
     this.soul.dispatch(said("User", text)); 
     this.userContext.push({ role: 'assistant', content: this.userContext + text});
     console.log(`LLM -> user context length: ${this.userContext.length}`.green);
