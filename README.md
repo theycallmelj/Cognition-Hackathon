@@ -150,7 +150,7 @@ C4Container
 C4Component
     title Component Diagram for the Backend
 
-    Container(Backend, "Backend", "Processes audio and text, orchestrates the flow", "Node.js") {
+   
         Component(AudioProcessor, "Audio Processor", "Handles audio processing tasks", "Node.js Module")
         Component(TextProcessor, "Text Processor", "Handles text processing tasks", "Node.js Module")
         Component(WorkflowOrchestrator, "Workflow Orchestrator", "Coordinates the flow between components", "Node.js Module")
@@ -166,5 +166,5 @@ C4Component
         Rel(WorkflowOrchestrator, AudioProcessor, "Coordinate Processing")
         Rel(WorkflowOrchestrator, TextProcessor, "Coordinate Processing")
         Rel(WorkflowOrchestrator, Twilio, "Send Speech Response")
-    }
+    
 ```
