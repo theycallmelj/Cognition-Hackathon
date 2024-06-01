@@ -98,6 +98,7 @@ sequenceDiagram
 #### Context
 ``` mermaid
 C4Context
+
    title System Context Diagram
 
     Person(User, "User", "Calls the voice bot for interaction")
@@ -108,16 +109,16 @@ C4Context
     System(OpenSouls, "OpenSouls", "Generates AI responses based on text input")
     System(ElevenLabs, "ElevenLabs", "Converts text to speech")
 
-    Rel(User, Twilio, "Initiates Call")
-    Rel(Twilio, Backend, "WebSocket Connection")
-    Rel(Backend, Gladia, "Send Raw Audio")
-    Rel(Gladia, Backend, "Return Transcribed Text")
-    Rel(Backend, OpenSouls, "Send Text")
-    Rel(OpenSouls, Backend, "Return AI Response")
-    Rel(Backend, ElevenLabs, "Send Text for Speech Conversion")
-    Rel(ElevenLabs, Backend, "Return Speech")
-    Rel(Backend, Twilio, "Send Speech Response")
-    Rel(Twilio, User, "Respond with AI Generated Speech")
+    Rel(User, Twilio, "Initiates Call").offset(0, -20)
+    Rel(Twilio, Backend, "WebSocket Connection").offset(0, -20)
+    Rel(Backend, Gladia, "Send Raw Audio").offset(0, -20)
+    Rel(Gladia, Backend, "Return Transcribed Text").offset(0, 20)
+    Rel(Backend, OpenSouls, "Send Text").offset(0, -20)
+    Rel(OpenSouls, Backend, "Return AI Response").offset(0, 20)
+    Rel(Backend, ElevenLabs, "Send Text for Speech Conversion").offset(0, -20)
+    Rel(ElevenLabs, Backend, "Return Speech").offset(0, 20)
+    Rel(Backend, Twilio, "Send Speech Response").offset(0, -20)
+    Rel(Twilio, User, "Respond with AI Generated Speech").offset(0, 20)
 ```
 
 #### Container
