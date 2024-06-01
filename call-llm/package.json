@@ -11,7 +11,8 @@
     "ngrok": "ngrok http 6000"
   },
   "dependencies": {
-    "@opensouls/soul": "^0.1.32",
+    "@hocuspocus/common": "^2.12.2",
+    "@opensouls/soul": "0.1.30",
     "axios": "^1.6.8",
     "colors": "^1.4.0",
     "elevenlabs": "^0.6.0",
@@ -20,8 +21,7 @@
     "express-ws": "^5.0.2",
     "openai": "^4.29.2",
     "twilio": "^5.1.0",
-    "uuid": "^9.0.1",
-    "wavefile": "^11.0.0"
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

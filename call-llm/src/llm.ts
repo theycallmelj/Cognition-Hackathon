@@ -1,5 +1,4 @@
 import EventEmitter from 'events';
-
 import { Soul, said } from "@opensouls/soul";
 
 export class Llm extends EventEmitter {
@@ -8,23 +7,35 @@ export class Llm extends EventEmitter {
   private userContext: any[];
 
   constructor() {
-    console.log("soul")
+    console.log("Initializing Soul...");
     super();
     this.soul = new Soul({
       organization: "capsaicinkidliamjohnston",
-      blueprint: "customer-service-broker",
-    });
-    this.soul.connect().then(async () => {
-      console.log("connected");
+      blueprint: "liamgpt",
     });
     this.userContext = [];
-    //callback for completion
-    this.soul.on("says", async ({ content }) => {
-      const text = await content();
-      console.log("soul says", text);
-      this.emit('llmreply',{partialResponse: text});
-    });
-    
+
+    this.initializeSoul();
+  }
+
+  private async initializeSoul() {
+    try {
+      await this.soul.connect();
+      console.log("Connected to Soul");
+
+      this.soul.on("says", async ({ content }) => {
+        try {
+          const text = await content();
+          console.log("Soul says:", text);
+          this.emit('llmreply', { partialResponse: text });
+        } catch (error) {
+          console.error("Error handling 'says' event:", error);
+        }
+      });
+
+    } catch (error) {
+      console.error("Error connecting to Soul:", error);
+    }
   }
 
   // Add the callSid to the chat context in case
@@ -42,9 +53,15 @@ export class Llm extends EventEmitter {
   }
 
   async completion(text: string, role = 'user', name = 'user') {
-    this.updateUserContext(name, role, text);
-    this.soul.dispatch(said("User", text)); 
-    this.userContext.push({ role: 'assistant', content: this.userContext + text});
-    console.log(`LLM -> user context length: ${this.userContext.length}`.green);
+    try {
+      this.updateUserContext(name, role, text);
+      if(text) {
+        await this.soul.dispatch(said("User", text)); 
+        this.userContext.push({ role: 'assistant', content: text });
+        console.log(`LLM -> user context length: ${this.userContext.length}`.green);
+      }
+    } catch (error) {
+      console.error("Error in completion method:", error);
+    }
   }
 }

@@ -6,18 +6,27 @@ import { Llm } from './llm';
 import { Stream } from './stream';
 import { TextToSpeech } from './text-to-speech';
 
-
 const app = ExpressWs(express()).app;
-const PORT: number = parseInt(process.env.PORT || '5000')
-const SAMPLE_RATE = 8000
+const PORT: number = parseInt(process.env.PORT || '5000');
+const SAMPLE_RATE = 8000;
+const llm = new Llm();
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
 
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception thrown:', error);
+  // Do not exit the process to ensure the application continues running
+  // process.exit(1); // Uncomment this if you want to exit the process on uncaught exceptions
+});
 
 export const startApp = () => {
-  const llm = new Llm();
-  const webSocket = require('ws')
-  const gladiaKey = process.env.GLADIA_API_KEY
-  const gladiaUrl = "wss://api.gladia.io/audio/text/audio-transcription"
-  const wsTranscription = new webSocket(gladiaUrl)
+  
+  const webSocket = require('ws');
+  const gladiaKey = process.env.GLADIA_API_KEY;
+  const gladiaUrl = "wss://api.gladia.io/audio/text/audio-transcription";
+  const wsTranscription = new webSocket(gladiaUrl);
+
   wsTranscription.on("open", () => {
     const configuration = {
       x_gladia_key: gladiaKey,
@@ -25,34 +34,34 @@ export const startApp = () => {
       sample_rate: SAMPLE_RATE,
       encoding: "WAV/ULAW",
       model_type: "accurate",
-      audio_enhancer: true
-    }
-    wsTranscription.send(JSON.stringify(configuration))
-  })
-  wsTranscription.on("message", (event : String) => {
-    if (!event) return
-    const utterance = JSON.parse(event.toString())
+      audio_enhancer: true,
+    };
+    wsTranscription.send(JSON.stringify(configuration));
+  });
+
+  wsTranscription.on("message", (event: String) => {
+    if (!event) return;
+    const utterance = JSON.parse(event.toString());
     if (!Object.keys(utterance).length) {
-      console.log("Empty ...")
-      return
+      console.log("Empty ...");
+      return;
     }
-  
+
     if (utterance.event === "connected") {
-      console.log(`${utterance.event} sucessfully with Connection id: ${utterance.request_id} `)
-    }
-    else if (utterance.event === "transcript" && utterance.transcription) {
+      console.log(`${utterance.event} successfully with Connection id: ${utterance.request_id}`);
+    } else if (utterance.event === "transcript" && utterance.transcription) {
       try {
-        console.log(JSON.stringify(utterance, null, 2))
-        if(utterance.type === "final") {
-        console.log(`Transcription – STT -> LLM: ${utterance.transcription}`.yellow);
-        llm.completion(utterance.transcription)
+        // you is a default placeholder the transcription does so you don't want to include it
+        if(utterance.type === "final" && utterance.transcription.trim() !== "you") {
+          console.log(JSON.stringify(utterance, null, 2));
+          console.log(`Transcription – STT -> LLM: ${utterance.transcription}`.yellow);
+          llm.completion(utterance.transcription);
         }
-        
       } catch (error) {
         console.error('Error in transcription:', error);
       }
     }
-  })
+  });
 
   app.post('/call/incoming', (_, res: Response) => {
     const twiml = new VoiceResponse();
@@ -79,38 +88,36 @@ export const startApp = () => {
     let marks: string[] = [];
 
     ws.on('message', (data: string) => {
-      const message: {
-        event: string;
-        start?: { streamSid: string; callSid: string };
-        media?: { payload: string };
-        mark?: { name: string };
-        sequenceNumber?: number;
-      } = JSON.parse(data);
+      try {
+        const message: {
+          event: string;
+          start?: { streamSid: string; callSid: string };
+          media?: { payload: string };
+          mark?: { name: string };
+          sequenceNumber?: number;
+        } = JSON.parse(data);
 
-      if (message.event === 'start' && message.start) {
-        streamSid = message.start.streamSid;
-        callSid = message.start.callSid;
-        stream.setStreamSid(streamSid);
-        llm.setCallSid(callSid);
-        console.log(
-          `Twilio -> Starting Media Stream for ${streamSid}`.underline.red,
-        );
-        textToSpeech.generate({
-          partialResponseIndex: null,
-          partialResponse: 'Hi, I am LiamGPT. How can I help you?',
-        });
-      } else if (message.event === 'media' && message.media) {
-        wsTranscription.send(JSON.stringify({ frames: message.media.payload }))
-      } else if (message.event === 'mark' && message.mark) {
-        const label: string = message.mark.name;
-
-        console.log(
-          `Twilio -> Audio completed mark (${message.sequenceNumber}): ${label}`
-            .red,
-        );
-        marks = marks.filter((m: string) => m !== message.mark?.name);
-      } else if (message.event === 'stop') {
-        console.log(`Twilio -> Media stream ${streamSid} ended.`.underline.red);
+        if (message.event === 'start' && message.start) {
+          streamSid = message.start.streamSid;
+          callSid = message.start.callSid;
+          stream.setStreamSid(streamSid);
+          llm.setCallSid(callSid);
+          console.log(`Twilio -> Starting Media Stream for ${streamSid}`.underline.red);
+          textToSpeech.generate({
+            partialResponseIndex: null,
+            partialResponse: 'Hi, I am LiamGPT. How can I help you?',
+          });
+        } else if (message.event === 'media' && message.media) {
+          wsTranscription.send(JSON.stringify({ frames: message.media.payload }));
+        } else if (message.event === 'mark' && message.mark) {
+          const label: string = message.mark.name;
+          console.log(`Twilio -> Audio completed mark (${message.sequenceNumber}): ${label}`.red);
+          marks = marks.filter((m: string) => m !== message.mark?.name);
+        } else if (message.event === 'stop') {
+          console.log(`Twilio -> Media stream ${streamSid} ended.`.underline.red);
+        }
+      } catch (error) {
+        console.error('Error handling message:', error);
       }
     });
 
@@ -119,16 +126,13 @@ export const startApp = () => {
       textToSpeech.generate({
         partialResponseIndex: null,
         partialResponse: llmReply.partialResponse,
-      })
+      });
     });
 
-    textToSpeech.on(
-      'speech',
-      (responseIndex: number, audio: string, label: string) => {
-        console.log(`TTS -> TWILIO: ${label}`.blue);
-        stream.buffer(responseIndex, audio);
-      },
-    );
+    textToSpeech.on('speech', (responseIndex: number, audio: string, label: string) => {
+      console.log(`TTS -> TWILIO: ${label}`.blue);
+      stream.buffer(responseIndex, audio);
+    });
 
     stream.on('audiosent', (markLabel: string) => {
       marks.push(markLabel);
