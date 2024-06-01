@@ -145,7 +145,7 @@ C4Container
     Rel(Twilio, User, "Respond with AI Generated Speech")
 ```
 
-#### Container
+#### Component
 ``` mermaid
 C4Component
     title Component Diagram for the Backend
@@ -166,5 +166,4 @@ C4Component
         Rel(WorkflowOrchestrator, AudioProcessor, "Coordinate Processing")
         Rel(WorkflowOrchestrator, TextProcessor, "Coordinate Processing")
         Rel(WorkflowOrchestrator, Twilio, "Send Speech Response")
-    
-```
+        ```
