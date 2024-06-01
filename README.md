@@ -1,3 +1,7 @@
+# Fractal Tech Hackathon
+I got the ball rolling on this voice bot project during a congtion hackathon at Betaworks because, well, I thought it'd be pretty awesome. But ran out of steam. Because, honestly, I still think it's a cool idea, and I believe in it. So I tried to finish it here.
+
+
 # Cognition-Hackathon
 The opensoulcode directory is for sandbox code and setting up the soul.
 The call-llm was taken from the eleven public repo and then modified to use the new soul code.
@@ -36,7 +40,7 @@ Twilio requires a publicly accessible URL. We’ll use ngrok to forward the loca
 Run the following command in your terminal:
 
 
-ngrok http 4000
+ngrok http 2000
 Copy the ngrok domain (without https://) to use in your environment variables.
 
 
@@ -65,10 +69,102 @@ Make a call to your number. You should hear a message using the ElevenLabs voice
 
 
 
-### Future Guidance
-Add in a way to call this number in such a way that it will connect this call with another call so that outbound calls can be made
+## Diagrams
 
-
+### Sequence Diagram
 That will create this flow
-![photo](./voice_chat_sequence_diagram.png)
+``` mermaid
+sequenceDiagram   
+    participant User
+    participant Twilio
+    participant Backend
+    participant Gladia
+    participant OpenSouls
+    participant ElevenLabs
 
+    User->>Twilio: Initiates Call
+    Twilio->>Backend: WebSocket Connection
+    Backend->>Gladia: Send Raw Audio
+    Gladia->>Backend: Return Transcribed Text
+    Backend->>OpenSouls: Send Text
+    OpenSouls->>Backend: Return AI Response
+    Backend->>ElevenLabs: Send Text for Speech Conversion
+    ElevenLabs->>Backend: Return Speech
+    Backend-xTwilio: Send Speech Response
+```
+
+### C4 Diagrams
+
+#### Context
+``` mermaid
+C4Context
+   title System Context Diagram
+
+    Person(User, "User", "Calls the voice bot for interaction")
+
+    System(Twilio, "Twilio", "Handles the call and forwards it to the backend")
+    System(Backend, "Backend", "Processes audio and text, orchestrates the flow")
+    System(Gladia, "Gladia", "Transcribes audio to text")
+    System(OpenSouls, "OpenSouls", "Generates AI responses based on text input")
+    System(ElevenLabs, "ElevenLabs", "Converts text to speech")
+
+    Rel(User, Twilio, "Initiates Call")
+    Rel(Twilio, Backend, "WebSocket Connection")
+    Rel(Backend, Gladia, "Send Raw Audio")
+    Rel(Gladia, Backend, "Return Transcribed Text")
+    Rel(Backend, OpenSouls, "Send Text")
+    Rel(OpenSouls, Backend, "Return AI Response")
+    Rel(Backend, ElevenLabs, "Send Text for Speech Conversion")
+    Rel(ElevenLabs, Backend, "Return Speech")
+    Rel(Backend, Twilio, "Send Speech Response")
+    Rel(Twilio, User, "Respond with AI Generated Speech")
+```
+
+#### Container
+``` mermaid
+C4Container
+    title Container Diagram
+
+    Person(User, "User", "Calls the voice bot for interaction")
+
+    Container(Twilio, "Twilio", "Handles the call and forwards it to the backend", "Voice Call Service")
+    Container(Backend, "Backend", "Processes audio and text, orchestrates the flow", "Node.js")
+    Container(Gladia, "Gladia", "Transcribes audio to text", "Audio Transcription Service")
+    Container(OpenSouls, "OpenSouls", "Generates AI responses based on text input", "AI Response Service")
+    Container(ElevenLabs, "ElevenLabs", "Converts text to speech", "Text to Speech Service")
+
+    Rel(User, Twilio, "Initiates Call")
+    Rel(Twilio, Backend, "WebSocket Connection")
+    Rel(Backend, Gladia, "Send Raw Audio")
+    Rel(Gladia, Backend, "Return Transcribed Text")
+    Rel(Backend, OpenSouls, "Send Text")
+    Rel(OpenSouls, Backend, "Return AI Response")
+    Rel(Backend, ElevenLabs, "Send Text for Speech Conversion")
+    Rel(ElevenLabs, Backend, "Return Speech")
+    Rel(Backend, Twilio, "Send Speech Response")
+    Rel(Twilio, User, "Respond with AI Generated Speech")
+```
+
+#### Container
+``` mermaid
+C4Component
+    title Component Diagram for the Backend
+
+    Container(Backend, "Backend", "Processes audio and text, orchestrates the flow", "Node.js") {
+        Component(AudioProcessor, "Audio Processor", "Handles audio processing tasks", "Node.js Module")
+        Component(TextProcessor, "Text Processor", "Handles text processing tasks", "Node.js Module")
+        Component(WorkflowOrchestrator, "Workflow Orchestrator", "Coordinates the flow between components", "Node.js Module")
+
+        Rel(AudioProcessor, Gladia, "Send Raw Audio")
+        Rel(Gladia, AudioProcessor, "Return Transcribed Text")
+        Rel(AudioProcessor, TextProcessor, "Send Transcribed Text")
+        Rel(TextProcessor, OpenSouls, "Send Text")
+        Rel(OpenSouls, TextProcessor, "Return AI Response")
+        Rel(TextProcessor, AudioProcessor, "Send AI Response")
+        Rel(AudioProcessor, ElevenLabs, "Send Text for Speech Conversion")
+        Rel(ElevenLabs, AudioProcessor, "Return Speech")
+        Rel(WorkflowOrchestrator, AudioProcessor, "Coordinate Processing")
+        Rel(WorkflowOrchestrator, TextProcessor, "Coordinate Processing")
+        Rel(WorkflowOrchestrator, Twilio, "Send Speech Response")
+    }
+```
