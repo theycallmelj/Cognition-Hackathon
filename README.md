@@ -135,8 +135,6 @@ C4Context
 #### Container
 ``` mermaid
 C4Container
-    
-C4Container
    title Container Diagram
 
     Person(User, "User", "Calls the voice bot for interaction")
